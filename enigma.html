@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M-17 Field Cipher Unit</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Special+Elite&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root{
+  --bg: #12160f;
+  --panel: #1b2016;
+  --panel-raised: #232a1c;
+  --brass: #b8934c;
+  --brass-light: #d9b56a;
+  --lamp-off: #362f22;
+  --lamp-on: #ffce59;
+  --lamp-glow: rgba(255, 206, 89, 0.65);
+  --paper: #e9e2cd;
+  --ink: #262218;
+  --dim: #8a8f7c;
+  --crimson: #8a4040;
+  --key-shadow: rgba(0,0,0,0.5);
+}
+
+*{ box-sizing: border-box; }
+
+body{
+  margin: 0;
+  background: radial-gradient(ellipse at top, #1a2015 0%, #0d100a 100%);
+  color: var(--paper);
+  font-family: 'JetBrains Mono', monospace;
+  min-height: 100vh;
+  padding: 24px 16px 60px;
+}
+
+.wrap{ max-width: 780px; margin: 0 auto; }
+
+header{ text-align: center; margin-bottom: 28px; }
+.eyebrow{
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.35em;
+  font-size: 11px;
+  color: var(--brass-light);
+  text-transform: uppercase;
+}
+h1{
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 52px;
+  letter-spacing: 0.08em;
+  margin: 6px 0 4px;
+  color: var(--paper);
+  text-shadow: 0 0 18px rgba(255,206,89,0.15);
+}
+.subtitle{ font-size: 12px; color: var(--dim); letter-spacing: 0.03em; }
+
+.machine{
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel));
+  border: 1px solid #3a3a2c;
+  border-radius: 10px;
+  padding: 20px 18px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+  margin-bottom: 20px;
+}
+
+.rotor-row{ display:flex; justify-content:center; gap: 14px; margin-bottom: 18px; }
+.rotor{
+  width: 54px; height: 64px;
+  background: #0e120a;
+  border: 2px solid var(--brass);
+  border-radius: 6px;
+  display:flex; align-items:center; justify-content:center;
+  position: relative;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
+}
+.rotor span{
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 30px;
+  color: var(--brass-light);
+  transition: transform 0.15s ease;
+}
+.rotor.spin span{ animation: flip 0.25s ease; }
+@keyframes flip{
+  0%{ transform: translateY(-12px); opacity:0.2; }
+  100%{ transform: translateY(0); opacity:1; }
+}
+.rotor-label{
+  position:absolute; bottom:-18px; font-size:9px; letter-spacing:0.15em; color: var(--dim);
+}
+
+.lampboard{
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  margin-bottom: 18px;
+  padding: 14px 8px;
+  background: #0d1108;
+  border-radius: 8px;
+  border: 1px solid #2c3021;
+}
+.lamp-row{ display:flex; gap:6px; }
+.lamp{
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--lamp-off);
+  display:flex; align-items:center; justify-content:center;
+  font-size: 12px; font-weight:600; color: #4a4535;
+  border: 1px solid #262112;
+  transition: all 0.12s ease;
+}
+.lamp.lit{
+  background: var(--lamp-on);
+  color: #3a2a05;
+  box-shadow: 0 0 16px 4px var(--lamp-glow), 0 0 3px var(--lamp-on);
+}
+
+.keyboard{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+.key-row{ display:flex; gap:5px; }
+.key{
+  width: 30px; height: 30px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #3a3324, #241f16);
+  border: 1px solid #1a160e;
+  color: var(--paper);
+  font-size: 12px; font-weight:600;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 2px 0 var(--key-shadow);
+}
+.key.pressed{
+  background: var(--brass);
+  color: #201a0a;
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+.panel{
+  background: var(--panel);
+  border: 1px solid #33301f;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.panel h2{
+  font-family:'Bebas Neue', sans-serif;
+  font-size: 18px; letter-spacing:0.08em;
+  color: var(--brass-light);
+  margin: 0 0 10px;
+}
+.settings-grid{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:6px; }
+.field{ display:flex; flex-direction:column; gap:4px; }
+.field label{ font-size: 10px; letter-spacing:0.08em; color: var(--dim); text-transform:uppercase; }
+.field input, .field select{
+  background: #0d1108;
+  border: 1px solid var(--brass);
+  border-radius: 4px;
+  color: var(--paper);
+  padding: 6px 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  width: 90px;
+}
+.field.wide input{ width: 180px; }
+
+textarea{
+  width: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Special Elite', monospace;
+  font-size: 15px;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 12px;
+  resize: vertical;
+  min-height: 54px;
+  box-shadow: inset 0 0 0 1px #00000022;
+}
+
+.btn-row{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+button{
+  font-family: 'JetBrains Mono', monospace;
+  font-weight:600;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 9px 16px;
+  border-radius: 5px;
+  border: 1px solid var(--brass);
+  background: var(--brass);
+  color: #201a0a;
+  cursor: pointer;
+}
+button:hover{ background: var(--brass-light); }
+button.secondary{
+  background: transparent;
+  color: var(--brass-light);
+}
+button.secondary:hover{ background: rgba(184,147,76,0.15); }
+
+.output-line{
+  margin-top: 10px;
+  font-family: 'Special Elite', monospace;
+  font-size: 16px;
+  color: var(--brass-light);
+  letter-spacing: 0.06em;
+  min-height: 24px;
+  word-break: break-word;
+}
+
+.log{ display:flex; flex-direction:column; gap:8px; max-height: 260px; overflow-y:auto; }
+.log-entry{
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Special Elite', monospace;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 3px;
+  border-left: 4px solid var(--brass);
+}
+.log-entry.incoming{ border-left-color: var(--crimson); }
+.log-meta{ font-size: 10px; color: #6a6555; letter-spacing: 0.05em; margin-bottom:2px; text-transform:uppercase; }
+
+.hint{ font-size: 11px; color: var(--dim); margin-top: 8px; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Field Cipher Unit &mdash; Model 17</div>
+    <h1>ENIGMA</h1>
+    <div class="subtitle">Set your shared key below. Same settings on both ends, every time.</div>
+  </header>
+
+  <div class="machine">
+    <div class="rotor-row" id="rotorRow">
+      <div class="rotor" id="rotor1"><span>A</span><div class="rotor-label">I</div></div>
+      <div class="rotor" id="rotor2"><span>A</span><div class="rotor-label">II</div></div>
+      <div class="rotor" id="rotor3"><span>A</span><div class="rotor-label">III</div></div>
+    </div>
+    <div class="lampboard" id="lampboard"></div>
+    <div class="keyboard" id="keyboard"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Shared Key Settings</h2>
+    <div class="settings-grid">
+      <div class="field">
+        <label>Rotor I start</label>
+        <select id="start1"></select>
+      </div>
+      <div class="field">
+        <label>Rotor II start</label>
+        <select id="start2"></select>
+      </div>
+      <div class="field">
+        <label>Rotor III start</label>
+        <select id="start3"></select>
+      </div>
+      <div class="field wide">
+        <label>Plugboard pairs</label>
+        <input id="plugPairs" type="text" placeholder="e.g. AQ BZ">
+      </div>
+    </div>
+    <div class="hint">Both devices must use the exact same settings, or messages won't decrypt correctly. Agree on these once before you start chatting.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Compose &amp; Encrypt</h2>
+    <textarea id="composeInput" placeholder="Type your message here..."></textarea>
+    <div class="btn-row">
+      <button onclick="runEncrypt()">Encrypt Message</button>
+      <button class="secondary" onclick="copyText('cipherOut')">Copy Ciphertext</button>
+    </div>
+    <div class="output-line" id="cipherOut"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Decode Received Message</h2>
+    <textarea id="decodeInput" placeholder="Paste the ciphertext you received..."></textarea>
+    <div class="btn-row">
+      <button onclick="runDecrypt()">Decrypt Message</button>
+      <button class="secondary" onclick="copyText('plainOut')">Copy Plaintext</button>
+    </div>
+    <div class="output-line" id="plainOut"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Dispatch Log</h2>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+
+<script>
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const ROTOR_WIRINGS = {
+  I:   "EKMFLGDQVZNTOWYHXUSPAIBRCJ",
+  II:  "AJDKSIRUXBLHWTMCQGZNPYFVOE",
+  III: "BDFHJLCPRTXVZNYEIWGAKMUSQO",
+};
+const ROTOR_NOTCHES = { I: "Q", II: "E", III: "V" };
+const REFLECTOR_B = "YRUHQSLDPXNGOKMIEBFZCWVJAT";
+const KB_ROWS = ["QWERTZUIO", "ASDFGHJK", "PYXCVBNML"];
+
+class Rotor{
+  constructor(name, startLetter){
+    this.name = name;
+    this.wiring = ROTOR_WIRINGS[name];
+    this.notch = ROTOR_NOTCHES[name];
+    this.position = ALPHABET.indexOf(startLetter);
+  }
+  rotate(){ this.position = (this.position + 1) % 26; }
+  atNotch(){ return ALPHABET[this.position] === this.notch; }
+  forward(letter){
+    const shiftedIndex = (ALPHABET.indexOf(letter) + this.position) % 26;
+    const wired = this.wiring[shiftedIndex];
+    const unshifted = (ALPHABET.indexOf(wired) - this.position + 26) % 26;
+    return ALPHABET[unshifted];
+  }
+  backward(letter){
+    const shiftedIndex = (ALPHABET.indexOf(letter) + this.position) % 26;
+    const shiftedLetter = ALPHABET[shiftedIndex];
+    const wiredIndex = this.wiring.indexOf(shiftedLetter);
+    const unshifted = (wiredIndex - this.position + 26) % 26;
+    return ALPHABET[unshifted];
+  }
+}
+
+function reflect(letter){ return REFLECTOR_B[ALPHABET.indexOf(letter)]; }
+function plugboardSwap(letter, pairs){ return pairs[letter] || letter; }
+
+function buildPlugPairs(text){
+  const pairs = {};
+  text.toUpperCase().split(/\s+/).forEach(p => {
+    if (p.length === 2){ pairs[p[0]] = p[1]; pairs[p[1]] = p[0]; }
+  });
+  return pairs;
+}
+
+function stepRotors(r1, r2, r3){
+  const r2WillStep = r1.atNotch() || r2.atNotch();
+  const r3WillStep = r2.atNotch();
+  if (r3WillStep) r3.rotate();
+  if (r2WillStep) r2.rotate();
+  r1.rotate();
+}
+
+function encryptLetter(letter, pairs, r1, r2, r3){
+  letter = plugboardSwap(letter, pairs);
+  letter = r1.forward(letter);
+  letter = r2.forward(letter);
+  letter = r3.forward(letter);
+  letter = reflect(letter);
+  letter = r3.backward(letter);
+  letter = r2.backward(letter);
+  letter = r1.backward(letter);
+  letter = plugboardSwap(letter, pairs);
+  return letter;
+}
+
+function encryptMessage(message, pairs, s1, s2, s3){
+  const r1 = new Rotor("I", s1), r2 = new Rotor("II", s2), r3 = new Rotor("III", s3);
+  let result = "";
+  const steps = [];
+  for (const ch of message.toUpperCase()){
+    if (!ALPHABET.includes(ch)){
+      result += ch;
+      steps.push({ input: ch, output: ch, lamp: null, positions: null });
+      continue;
+    }
+    stepRotors(r1, r2, r3);
+    const out = encryptLetter(ch, pairs, r1, r2, r3);
+    result += out;
+    steps.push({
+      input: ch, output: out, lamp: out,
+      positions: [ALPHABET[r1.position], ALPHABET[r2.position], ALPHABET[r3.position]]
+    });
+  }
+  return { result, steps };
+}
+
+// ---- UI setup ----
+function buildLetterGrid(container, prefix, onClick){
+  KB_ROWS.forEach((row, i) => {
+    const rowEl = document.createElement("div");
+    rowEl.className = prefix === "lamp" ? "lamp-row" : "key-row";
+    for (const ch of row){
+      const el = document.createElement("div");
+      el.className = prefix;
+      el.id = prefix + "-" + ch;
+      el.textContent = ch;
+      if (onClick) el.addEventListener("click", () => onClick(ch));
+      rowEl.appendChild(el);
+    }
+    container.appendChild(rowEl);
+  });
+}
+buildLetterGrid(document.getElementById("lampboard"), "lamp");
+buildLetterGrid(document.getElementById("keyboard"), "key", (ch) => {
+  const box = document.getElementById("composeInput");
+  box.value += ch;
+});
+
+// populate rotor start selects
+["start1","start2","start3"].forEach(id => {
+  const sel = document.getElementById(id);
+  for (const ch of ALPHABET){
+    const opt = document.createElement("option");
+    opt.value = ch; opt.textContent = ch;
+    sel.appendChild(opt);
+  }
+});
+
+// ---- sound ----
+let audioCtx = null;
+function click(){
+  try{
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "square";
+    osc.frequency.value = 480;
+    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.05);
+  } catch(e){ /* audio not available, ignore */ }
+}
+
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+async function animateSteps(steps){
+  for (const step of steps){
+    if (step.lamp){
+      click();
+      const keyEl = document.getElementById("key-" + step.input);
+      const lampEl = document.getElementById("lamp-" + step.lamp);
+      if (keyEl) keyEl.classList.add("pressed");
+      if (lampEl) lampEl.classList.add("lit");
+
+      document.getElementById("rotor1").querySelector("span").textContent = step.positions[0];
+      document.getElementById("rotor2").querySelector("span").textContent = step.positions[1];
+      document.getElementById("rotor3").querySelector("span").textContent = step.positions[2];
+      ["rotor1","rotor2","rotor3"].forEach(id => {
+        const r = document.getElementById(id);
+        r.classList.add("spin");
+        setTimeout(() => r.classList.remove("spin"), 200);
+      });
+
+      await sleep(90);
+      if (keyEl) keyEl.classList.remove("pressed");
+      if (lampEl) lampEl.classList.remove("lit");
+      await sleep(40);
+    } else {
+      await sleep(60);
+    }
+  }
+}
+
+function getSettings(){
+  return {
+    s1: document.getElementById("start1").value,
+    s2: document.getElementById("start2").value,
+    s3: document.getElementById("start3").value,
+    pairs: buildPlugPairs(document.getElementById("plugPairs").value)
+  };
+}
+
+function addLog(type, text){
+  const log = document.getElementById("log");
+  const entry = document.createElement("div");
+  entry.className = "log-entry" + (type === "incoming" ? " incoming" : "");
+  const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  entry.innerHTML = `<div class="log-meta">${type === "incoming" ? "Received" : "Sent"} &middot; ${time}</div>${text}`;
+  log.prepend(entry);
+}
+
+async function runEncrypt(){
+  const msg = document.getElementById("composeInput").value;
+  if (!msg.trim()) return;
+  const { s1, s2, s3, pairs } = getSettings();
+  const { result, steps } = encryptMessage(msg, pairs, s1, s2, s3);
+  document.getElementById("cipherOut").textContent = "";
+  await animateSteps(steps);
+  document.getElementById("cipherOut").textContent = result;
+  addLog("outgoing", result);
+}
+
+async function runDecrypt(){
+  const msg = document.getElementById("decodeInput").value;
+  if (!msg.trim()) return;
+  const { s1, s2, s3, pairs } = getSettings();
+  const { result, steps } = encryptMessage(msg, pairs, s1, s2, s3);
+  document.getElementById("plainOut").textContent = "";
+  await animateSteps(steps);
+  document.getElementById("plainOut").textContent = result;
+  addLog("incoming", result);
+}
+
+function copyText(elId){
+  const text = document.getElementById(elId).textContent;
+  if (!text) return;
+  navigator.clipboard.writeText(text).catch(() => {});
+}
+</script>
+</body>
+</html>
